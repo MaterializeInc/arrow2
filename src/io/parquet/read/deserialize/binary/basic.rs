@@ -520,21 +520,23 @@ impl<O: Offset, A: TraitBinaryArray<O>, I: Pages> Iterator for Iter<O, A, I> {
     type Item = Result<A>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let maybe_state = next(
-            &mut self.iter,
-            &mut self.items,
-            &mut self.dict,
-            &mut self.remaining,
-            self.chunk_size,
-            &BinaryDecoder::<O>::default(),
-        );
-        match maybe_state {
-            MaybeNext::Some(Ok((values, validity))) => {
-                Some(finish(&self.data_type, values, validity))
-            }
-            MaybeNext::Some(Err(e)) => Some(Err(e)),
-            MaybeNext::None => None,
-            MaybeNext::More => self.next(),
+        loop {
+            let maybe_state = next(
+                &mut self.iter,
+                &mut self.items,
+                &mut self.dict,
+                &mut self.remaining,
+                self.chunk_size,
+                &BinaryDecoder::<O>::default(),
+            );
+            return match maybe_state {
+                MaybeNext::Some(Ok((values, validity))) => {
+                    Some(finish(&self.data_type, values, validity))
+                }
+                MaybeNext::Some(Err(e)) => Some(Err(e)),
+                MaybeNext::None => None,
+                MaybeNext::More => continue,
+            };
         }
     }
 }
